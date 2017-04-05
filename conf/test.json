@@ -1,0 +1,6 @@
+{
+  "action":1,
+  "perm_parent":"0000",
+  "perm_note":"测试",
+  "permission":["today","dst"]
+}
