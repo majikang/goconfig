@@ -9,7 +9,7 @@ const (
 //定义配置文件结构体
 type ConfigFile struct {
 	lock      	sync.RWMutex                 // 锁
-	fileNames 	[]string                     // 文件名数组
+	configFileNames []string                     // 文件名数组
 	data      	map[string]map[string]string // Section -> key : value
 	LockMode       	bool                         // 是否加锁.
 }
