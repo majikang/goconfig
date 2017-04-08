@@ -55,43 +55,22 @@ func (c *ConfigFile) openAndReadFile(configFileName string) (err error) {
 	//根据后缀判断不同的读取校验方法
 	switch fileSuffix {
 	case "conf","ini","text","config":
-		return
-	case "json":
-		return
+		return c.read_conf(f)
+	/*case "json":
+		return c.read_json(f)*/
 	default:
 		return nil
 	}
-/*	buf := bufio.NewReader(f)//读入缓存
-	for {
-		//以'\n'为结束符逐行读取
-		line, err := buf.ReadString('\n')
-		line = strings.TrimSpace(line)
-		lineLengh := len(line) //[SWH|+]
-		//fmt.Println(regexp.Match("[.* ", line))
-
-		if err != nil {
-			//结束符错误
-			if err != io.EOF {
-				return err
-			}
-			//空行
-			if lineLengh == 0 {
-				break
-			}
-		}
-		//对每行的数据做处理
-	}
-	return err;*/
 }
 //conf等格式逐行读取
-func (c *ConfigFile) Read_Conf(reader io.Reader) (err error) {
+func (c *ConfigFile) read_conf(reader io.Reader) error {
 	buf := bufio.NewReader(reader)
 	section := DEFAULT_SECTION
-
 	//逐行读取
 	for{
 		line, err := buf.ReadString('\n')
-		line = strings.TrimSpace(line)
+		line = strings.TrimSpace(line) //去除字符串前后byte为32的空白字符
+
 		lineLengh := len(line)
 		if err != nil {
 			//尾行结束符出错
@@ -105,27 +84,43 @@ func (c *ConfigFile) Read_Conf(reader io.Reader) (err error) {
 		}
 		if lineLengh > 0 {
 			switch  {
+			// 空行
+			case lineLengh == 0:
+				continue
+			// section
 			case line[0] == '[' && line[lineLengh-1] == ']':
 				section = strings.TrimSpace(line[1 : lineLengh-1])
-				c.SetValue(section, " ", " ")
-				// Reset counter.
-				//count = 1
+				c.SetValue(section, "", "")
 				continue
-
+			//key-value
+			case strings.Index(line, "=") > 0 || strings.Index(line, ":") > 0:
+				//分割key和value并加载
+				var (
+					key string
+					value string
+				)
+				equal:=strings.Index(line, "=")
+				colon:=strings.Index(line, ":")
+				if equal > 0 {
+					key = getKeyOrValue(line[:equal])
+					value = getKeyOrValue(line[equal+1:])
+				}else if colon > 0 {
+					key = getKeyOrValue(line[:colon])
+					value = getKeyOrValue(line[colon+1:])
+				}
+				//fmt.Print("(key:",key,"||value:",value,")\n")
+				c.SetValue(section, key, value)
+				continue
 			}
 		}
-
+		if err == io.EOF {
+			break
+		}
 	}
-
-
-
-
-
 	return nil
-
 }
 //json格式读取所有内容
-func (c *ConfigFile) Read_Json(path string) string{
+func (c *ConfigFile) read_json(path string) string{
 
 	fi,err := os.Open(path)
 	if err != nil{
@@ -141,4 +136,14 @@ func trapBOM(fileBytes []byte) []byte{
 	trimmedBytes := bytes.Trim(fileBytes, "\xef\xbb\xbf")
 	return trimmedBytes
 }
-
+//去除两边引号获得key或者value
+func getKeyOrValue(str string) string {
+	str = strings.TrimSpace(str)
+	strlen:=len(str)
+	//fmt.Print(str)
+	if (str[0:1]=="\"" && str[strlen-1:strlen]=="\"") || (str[0:1]=="'" && str[strlen-1:strlen]=="'") {
+		return str[1:strlen-1]
+	}else {
+		return str
+	}
+}
