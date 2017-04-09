@@ -1,0 +1,9 @@
+{
+  "from":"en",
+  "to":"zh",
+  "trans_result":{
+    "src":"today",
+    "dst":"今天"
+  },
+  "result":["src","today","dst","今天"]
+}
